@@ -4,25 +4,56 @@
 
 Build a simple analytics pipeline to process LLM application logs and produce a chart or dashboard. The dataset contains 1,000 API call records with metrics like timestamps, token counts, and latency.
 
-## Instructions
+1. Load JSON Data into a Database
+Database Initialization:
+ - A PostgreSQL database is configured, and a metrics table is defined using SQLAlchemy's ORM.
+ - The schema of the table matches the fields in the JSON data.
+Data Insertion:
+ - The JSON file is read, and each log entry is inserted into the metrics table in the database.
+ - The insert_data function ensures that each entry is mapped to the corresponding database columns.
 
-1. Fork this repository
-2. Use the provided [data/llm-logs.json](data/llm-logs.json) dataset
-3. Create a pipeline that:
-   - Loads the JSON data into a database of your choice
-   - Calculates some metrics over time
-   - Generates at least one visualization or dashboard
+2. Calculate Metrics
+Data Retrieval:
+ - All data from the metrics table is fetched into a Pandas DataFrame for processing.
+Metrics Calculation:
+ - The prepare_dashboard_data function computes key metrics from the data:  
+ - Total Tokens by Model: Summed token usage grouped by model.
+ - Prompt vs Completion Tokens: Breakdown of tokens into prompt and completion categories for each model.
+ - Average Time to First Token: Mean latency (time_to_first_token) grouped by model.
+ - Temperature Distribution: Histogram of the temperature parameter.
+ - Request Type Distribution: Distribution of request types (text, completion, etc.).
+ - Token Usage Over Time: Trend of total token usage over time.
 
-You can use any language, database, and visualization tools you want. Don't worry about perfection – we value simplicity and elegance. A quick and simple solution that just works is ideal.
+3. Visualization via Dashboard
+Dash App:
+ - A Dash app is set up for interactive visualization of the computed metrics.
+ - The dashboard layout is defined in the create_dashboard_layout function and contains six visualizations:
 
-Feel free to ask any questions via github issues or an email to our recruiting team. Good luck!
+## Steps to execute the code
 
-## Requirements
+1. Prepare the Environment
+Before running the container, ensure the following prerequisites are met:
 
-- Working code that processes the data
-- A database to store the transformed data
-- At least one chart/visualization
-- Replace this README.md with a document explaining your solution and how to run it
+ - Docker is installed on your machine.
+ - The code for the application (including the Dockerfile, Python script, and JSON data file) is in a single directory.
+
+2. Build and start the Docker Containers
+Build and run the containers with the following command:
+
+```
+cd data-eng-take-home-test
+docker-compose build && docker-compose up
+```
+3. Access the App
+Open a web browser and navigate to http://localhost:8050 to view the dashboard.
+You can access the postgres database by navigating to http://localhost:8000. Use the credentials given in docker-compose.yml to login into pgAdmin.
+
+4. Shut Down and Remove the Docker Containers
+
+```
+docker-compose down 
+docker-compose down --volumes        
+```
 
 ## Data Format
 
