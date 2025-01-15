@@ -77,3 +77,40 @@ Build a simple analytics pipeline to process LLM application logs and produce a 
   }
 }
 ```
+## Dashboard
+
+1. **Total Tokens Used by Model**
+
+   - Displays the total number of tokens used by each model.
+   - Helps track token consumption per model.
+   ![Alt Text](images/total_tokens_by_model.png "Total Tokens Used by Model")
+
+2. **Prompt vs. Completion Tokens by Model:**
+
+   - A stacked bar chart shows the split between Prompt vs. Completion Tokens by Model.
+   - Useful to understand model usage patterns.
+   ![Alt Text](images/prompt_vs_completion.png "Prompt vs. Completion Tokens by Model")
+
+3. **Average Time to First Token by Model:**
+
+   - Displays each model's average time (in seconds) to generate the first token.
+   - Helps identify performance bottlenecks.
+   ![Alt Text](images/average_time_to_first_token.png "Average Time to First Token by Model")
+
+4. **Temperature Distribution:**
+
+   - Histogram of the temperature parameter.
+   - Useful for understanding the range of creativity levels used.
+   ![Alt Text](images/temperature_distribution.png "Temperature Distribution")
+
+5. **Request Type Distribution:**
+
+   - Pie chart of the type field (e.g., text, chat).
+   - Provides insights into the types of requests being processed.
+   ![Alt Text](images/request_type_distribution.png "Request Type Distribution")
+
+6. **Token Usage Over Time:**
+
+   - Line chart showing token usage over time.
+   - Useful for tracking trends in token consumption.
+   ![Alt Text](images/token_usage_over_time.png "Token Usage Over Time")
