@@ -17,12 +17,12 @@ Data Retrieval:
  - All data from the metrics table is fetched into a Pandas DataFrame for processing.
 Metrics Calculation:
  - The prepare_dashboard_data function computes key metrics from the data:  
- - Total Tokens by Model: Summed token usage grouped by model.
- - Prompt vs Completion Tokens: Breakdown of tokens into prompt and completion categories for each model.
- - Average Time to First Token: Mean latency (time_to_first_token) grouped by model.
- - Temperature Distribution: Histogram of the temperature parameter.
- - Request Type Distribution: Distribution of request types (text, completion, etc.).
- - Token Usage Over Time: Trend of total token usage over time.
+  - Total Tokens by Model: Summed token usage grouped by model.
+  - Prompt vs Completion Tokens: Breakdown of tokens into prompt and completion categories for each model.
+  - Average Time to First Token: Mean latency (time_to_first_token) grouped by model.
+  - Temperature Distribution: Histogram of the temperature parameter.
+  - Request Type Distribution: Distribution of request types (text, completion, etc.).
+  - Token Usage Over Time: Trend of total token usage over time.
 
 3. Visualization via Dashboard
 Dash App:
