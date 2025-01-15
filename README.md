@@ -8,6 +8,7 @@ Build a simple analytics pipeline to process LLM application logs and produce a 
 Database Initialization:
  - A PostgreSQL database is configured, and a metrics table is defined using SQLAlchemy's ORM.
  - The schema of the table matches the fields in the JSON data.
+
 Data Insertion:
  - The JSON file is read, and each log entry is inserted into the metrics table in the database.
  - The insert_data function ensures that each entry is mapped to the corresponding database columns.
@@ -15,8 +16,9 @@ Data Insertion:
 2. Calculate Metrics
 Data Retrieval:
  - All data from the metrics table is fetched into a Pandas DataFrame for processing.
+
 Metrics Calculation:
- - The prepare_dashboard_data function computes key metrics from the data:  
+ - The prepare_dashboard_data function computes key metrics from the data: 
   - Total Tokens by Model: Summed token usage grouped by model.
   - Prompt vs Completion Tokens: Breakdown of tokens into prompt and completion categories for each model.
   - Average Time to First Token: Mean latency (time_to_first_token) grouped by model.
