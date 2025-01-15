@@ -27,30 +27,41 @@ DB_CONFIG = {
 # Functions
 def get_db_engine():
     """Create a connection to the PostgreSQL database."""
-    connection_url = f"postgresql://{DB_CONFIG['username']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
-    return create_engine(connection_url)
+    try:
+        connection_url = f"postgresql://{DB_CONFIG['username']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+        engine = create_engine(connection_url)
+        LOGGER.info("Successfully created DB engine.")
+        return engine
+    except Exception as e:
+        LOGGER.error(f"Failed to create DB engine: {e}")
+        raise ConnectionError(f"Error while creating DB engine: {e}")
 
 def initialize_db(engine):
     """Initialize the database schema."""
-    meta = MetaData()
-    metrics = Table(
-        "metrics", meta,
-        Column("created", String),
-        Column("model", String),
-        Column("stream", Boolean),
-        Column("max_tokens", Integer),
-        Column("temperature", Float),
-        Column("type", String),
-        Column("metrics_start", Float),
-        Column("metrics_end", Float),
-        Column("metrics_tokens", Integer),
-        Column("metrics_prompt_tokens", Integer),
-        Column("metrics_completion_tokens", Integer),
-        Column("metrics_time_to_first_token", Float),
-        schema="llm",
-    )
-    meta.create_all(engine)
-    return metrics
+    try:
+        meta = MetaData()
+        metrics = Table(
+            "metrics", meta,
+            Column("created", String),
+            Column("model", String),
+            Column("stream", Boolean),
+            Column("max_tokens", Integer),
+            Column("temperature", Float),
+            Column("type", String),
+            Column("metrics_start", Float),
+            Column("metrics_end", Float),
+            Column("metrics_tokens", Integer),
+            Column("metrics_prompt_tokens", Integer),
+            Column("metrics_completion_tokens", Integer),
+            Column("metrics_time_to_first_token", Float),
+            schema="llm",
+        )
+        meta.create_all(engine)
+        LOGGER.info("Database schema initialized successfully.")
+        return metrics
+    except Exception as e:
+        LOGGER.error(f"Error initializing database schema: {e}")
+        raise
 
 def retry_connection(get_engine_func, retries=5, delay=5):
     """Retry mechanism for database connection."""
@@ -67,133 +78,164 @@ def retry_connection(get_engine_func, retries=5, delay=5):
 
 def read_json(file_path):
     """Read data from a JSON file."""
-    with open(file_path, "r") as file:
-        return json.load(file)
+    try:
+        with open(file_path, "r") as file:
+            data = json.load(file)
+        LOGGER.info("JSON file read successfully.")
+        return data
+    except FileNotFoundError:
+        LOGGER.error(f"File not found: {file_path}")
+        raise
+    except json.JSONDecodeError:
+        LOGGER.error(f"Error decoding JSON from file: {file_path}")
+        raise
 
 def insert_data(engine, table, data):
     """Insert JSON data into the database."""
-    for item in data["data"]:
-        engine.execute(
-            table.insert().values(
-                created=item.get("created"),
-                model=item.get("model"),
-                stream=item.get("stream"),
-                max_tokens=item.get("max_tokens"),
-                temperature=item.get("temperature"),
-                type=item.get("type"),
-                metrics_start=item.get("metrics", {}).get("start"),
-                metrics_end=item.get("metrics", {}).get("end"),
-                metrics_tokens=item.get("metrics", {}).get("tokens"),
-                metrics_prompt_tokens=item.get("metrics", {}).get("prompt_tokens"),
-                metrics_completion_tokens=item.get("metrics", {}).get("completion_tokens"),
-                metrics_time_to_first_token=item.get("metrics", {}).get("time_to_first_token"),
+    try:
+        for item in data["data"]:
+            engine.execute(
+                table.insert().values(
+                    created=item.get("created"),
+                    model=item.get("model"),
+                    stream=item.get("stream"),
+                    max_tokens=item.get("max_tokens"),
+                    temperature=item.get("temperature"),
+                    type=item.get("type"),
+                    metrics_start=item.get("metrics", {}).get("start"),
+                    metrics_end=item.get("metrics", {}).get("end"),
+                    metrics_tokens=item.get("metrics", {}).get("tokens"),
+                    metrics_prompt_tokens=item.get("metrics", {}).get("prompt_tokens"),
+                    metrics_completion_tokens=item.get("metrics", {}).get("completion_tokens"),
+                    metrics_time_to_first_token=item.get("metrics", {}).get("time_to_first_token"),
+                )
             )
-        )
-        LOGGER.info(f"Inserted log entry for {item['created']}")
+            LOGGER.info(f"Inserted log entry for {item['created']}")
+    except Exception as e:
+        LOGGER.error(f"Error inserting data: {e}")
+        raise
 
 def fetch_data(engine, table):
     """Fetch data from the database."""
-    query = sqlalchemy.select([table])
-    result = engine.execute(query).fetchall()
-    return pd.DataFrame(result, columns=[
-        "created", "model", "stream", "max_tokens", "temperature", "type",
-        "metrics_start", "metrics_end", "metrics_tokens", "metrics_prompt_tokens",
-        "metrics_completion_tokens", "metrics_time_to_first_token"
-    ])
+    try:
+        query = sqlalchemy.select([table])
+        result = engine.execute(query).fetchall()
+        df = pd.DataFrame(result, columns=[
+            "created", "model", "stream", "max_tokens", "temperature", "type",
+            "metrics_start", "metrics_end", "metrics_tokens", "metrics_prompt_tokens",
+            "metrics_completion_tokens", "metrics_time_to_first_token"
+        ])
+        LOGGER.info("Data fetched successfully from the database.")
+        return df
+    except Exception as e:
+        LOGGER.error(f"Error fetching data: {e}")
+        raise
 
 def prepare_dashboard_data(df):
     """Prepare data for visualizations."""
-    df["created"] = pd.to_datetime(df["created"])
-    return {
-        "total_tokens": df.groupby("model")["metrics_tokens"].sum().reset_index(),
-        "prompt_vs_completion": df.groupby("model")[["metrics_prompt_tokens", "metrics_completion_tokens"]].sum().reset_index(),
-        "time_to_first_token": df.groupby("model")["metrics_time_to_first_token"].mean().reset_index(),
-        "temperature_distribution": df["temperature"],
-        "request_type_distribution": df["type"].value_counts().reset_index(),
-        "tokens_over_time": df[["created", "metrics_tokens"]],
-    }
+    try:
+        df["created"] = pd.to_datetime(df["created"])
+        dashboard_data = {
+            "total_tokens": df.groupby("model")["metrics_tokens"].sum().reset_index(),
+            "prompt_vs_completion": df.groupby("model")[["metrics_prompt_tokens", "metrics_completion_tokens"]].sum().reset_index(),
+            "time_to_first_token": df.groupby("model")["metrics_time_to_first_token"].mean().reset_index(),
+            "temperature_distribution": df["temperature"],
+            "request_type_distribution": df["type"].value_counts().reset_index(),
+            "tokens_over_time": df[["created", "metrics_tokens"]],
+        }
+        LOGGER.info("Dashboard data prepared successfully.")
+        return dashboard_data
+    except Exception as e:
+        LOGGER.error(f"Error preparing dashboard data: {e}")
+        raise
 
 def create_dashboard_layout(data):
     """Define the layout of the Dash dashboard."""
-    return html.Div([
-        html.H1("LLM Log Metrics Dashboard", style={"textAlign": "center"}),
+    try:
+        layout = html.Div([
+            html.H1("LLM Log Metrics Dashboard", style={"textAlign": "center"}),
 
-        # Chart 1: Total Tokens by Model
-        html.Div([
-            dcc.Graph(
-                id="total-tokens-by-model",
-                figure=px.bar(data["total_tokens"], x="model", y="metrics_tokens", title="Total Tokens Used by Model")
-            )
-        ]),
-
-        # Chart 2: Prompt vs Completion Tokens by Model
-        html.Div([
-            dcc.Graph(
-                id="prompt-vs-completion-tokens",
-                figure=px.bar(
-                    data["prompt_vs_completion"],
-                    x="model",
-                    y=["metrics_prompt_tokens", "metrics_completion_tokens"],
-                    title="Prompt vs Completion Tokens by Model",
-                    labels={"value": "Tokens", "variable": "Type"},
-                    barmode="stack"
+            # Chart 1: Total Tokens by Model
+            html.Div([
+                dcc.Graph(
+                    id="total-tokens-by-model",
+                    figure=px.bar(data["total_tokens"], x="model", y="metrics_tokens", title="Total Tokens Used by Model")
                 )
-            )
-        ]),
+            ]),
 
-        # Chart 3: Average Time to First Token by Model
-        html.Div([
-            dcc.Graph(
-                id="time-to-first-token",
-                figure=px.bar(
-                    data["time_to_first_token"],
-                    x="model",
-                    y="metrics_time_to_first_token",
-                    title="Average Time to First Token by Model (seconds)"
+            # Chart 2: Prompt vs Completion Tokens by Model
+            html.Div([
+                dcc.Graph(
+                    id="prompt-vs-completion-tokens",
+                    figure=px.bar(
+                        data["prompt_vs_completion"],
+                        x="model",
+                        y=["metrics_prompt_tokens", "metrics_completion_tokens"],
+                        title="Prompt vs Completion Tokens by Model",
+                        labels={"value": "Tokens", "variable": "Type"},
+                        barmode="stack"
+                    )
                 )
-            )
-        ]),
+            ]),
 
-        # Chart 4: Temperature Distribution
-        html.Div([
-            dcc.Graph(
-                id="temperature-distribution",
-                figure=px.histogram(
-                    data["temperature_distribution"],
-                    x=data["temperature_distribution"],
-                    title="Temperature Distribution",
-                    labels={"x": "Temperature"}
+            # Chart 3: Average Time to First Token by Model
+            html.Div([
+                dcc.Graph(
+                    id="time-to-first-token",
+                    figure=px.bar(
+                        data["time_to_first_token"],
+                        x="model",
+                        y="metrics_time_to_first_token",
+                        title="Average Time to First Token by Model (seconds)"
+                    )
                 )
-            )
-        ]),
+            ]),
 
-        # Chart 5: Request Type Distribution
-        html.Div([
-            dcc.Graph(
-                id="request-type-distribution",
-                figure=px.pie(
-                    data["request_type_distribution"],
-                    names="index",
-                    values="type",
-                    title="Request Type Distribution"
+            # Chart 4: Temperature Distribution
+            html.Div([
+                dcc.Graph(
+                    id="temperature-distribution",
+                    figure=px.histogram(
+                        data["temperature_distribution"],
+                        x=data["temperature_distribution"],
+                        title="Temperature Distribution",
+                        labels={"x": "Temperature"}
+                    )
                 )
-            )
-        ]),
+            ]),
 
-        # Chart 6: Token Usage Over Time
-        html.Div([
-            dcc.Graph(
-                id="tokens-over-time",
-                figure=px.line(
-                    data["tokens_over_time"],
-                    x="created",
-                    y="metrics_tokens",
-                    title="Token Usage Over Time",
-                    labels={"created": "Timestamp", "metrics_tokens": "Tokens"}
+            # Chart 5: Request Type Distribution
+            html.Div([
+                dcc.Graph(
+                    id="request-type-distribution",
+                    figure=px.pie(
+                        data["request_type_distribution"],
+                        names="index",
+                        values="type",
+                        title="Request Type Distribution"
+                    )
                 )
-            )
-        ]),
-    ])
+            ]),
+
+            # Chart 6: Token Usage Over Time
+            html.Div([
+                dcc.Graph(
+                    id="tokens-over-time",
+                    figure=px.line(
+                        data["tokens_over_time"],
+                        x="created",
+                        y="metrics_tokens",
+                        title="Token Usage Over Time",
+                        labels={"created": "Timestamp", "metrics_tokens": "Tokens"}
+                    )
+                )
+            ]),
+        ])
+        LOGGER.info("Dashboard layout created successfully.")
+        return layout
+    except Exception as e:
+        LOGGER.error(f"Error creating dashboard layout: {e}")
+        raise
 
 # Main script
 if __name__ == "__main__":
